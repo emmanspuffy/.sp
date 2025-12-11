@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPUFFYFFET | Portfolio</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,500,600,700,900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-black: #191a1d;
+      --glass-dark: rgba(30, 34, 38, 0.80);
+      --gray-medium: #262a2e;
+      --gray-light: #e3e5ea;
+      --green: #38f87b;
+      --green-grad: linear-gradient(90deg,#08d664 5%,#36ee81 95%);
+      --header-size: 2.3rem;
+      --border-radius: 30px;
+      --shadow: 0 8px 24px 0 rgba(8, 214, 100, 0.12);
+      --nav-height: 65px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg-black);
+      color: var(--gray-light);
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      height: var(--nav-height);
+      background: var(--glass-dark);
+      backdrop-filter: blur(15px);
+      z-index: 10;
+      box-shadow: var(--shadow);
+      border-bottom: 1px solid #222;
+      width: 100vw;
+      min-width: 100vw;
+    }
+    nav .nav-inner {
+      display: flex;
+      width: 100%;
+      max-width: 1200px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2vw;
+    }
+    nav .logo {
+      font-size: 1.65rem;
+      font-weight: 900;
+      background: var(--green-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: .12em;
+      cursor: pointer;
+      filter: brightness(1.13);
+      text-shadow: 0 4px 36px rgba(8,214,100,.12);
+      margin-right: .5em;
+      transition: filter .19s;
+    }
+    nav .logo:hover { filter: brightness(1.2); }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+      margin: 0;
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+    }
+    nav a {
+      color: var(--gray-light);
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 1.11rem;
+      letter-spacing: .04em;
+      position: relative;
+      padding-bottom: 4px;
+      transition: color 0.21s, letter-spacing .19s;
+      display: inline-block;
+      text-align: center;
+    }
+    nav a.active {
+      color: var(--green);
+      letter-spacing: .11em;
+    }
+    nav a:after {
+      content: '';
+      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--green-grad);
+      border-radius: 2px;
+      transition: width 0.25s cubic-bezier(.49,0,.58,1.0);
+    }
+    nav a.active:after, nav a:hover:after { width: 100%; }
+    nav a:hover { color: var(--green); letter-spacing: .14em; }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 auto;
+      padding: 0 1vw;
+    }
+    .section {
+      display: none;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s cubic-bezier(.49,0,.58,1.0);
+      width: 100%;
+      position: relative;
+      margin: 0 0 2rem 0;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+    }
+    .section.active {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+      animation: fadeInSection 0.7s;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+    @keyframes fadeInSection {
+      from { opacity: 0; transform: translateY(34px);}
+      to   { opacity: 1; transform: translateY(0);}
+    }
+    #about.section {
+      background: var(--glass-dark);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 2rem 3vw 2rem 3vw;
+      max-width: 500px;
+      min-width: 250px;
+      margin: 2rem auto .7rem auto;
+      text-align: center;
+      align-items: center;
+    }
+    #about .profile-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 55%;
+      object-fit: cover;
+      border: 4px solid var(--green);
+      box-shadow: 0 0 0 10px #08d6641c;
+      margin-bottom: 1.2rem;
+      background: var(--gray-medium);
+    }
+    #about h1 {
+      font-size: var(--header-size);
+      font-weight: 900;
+      margin-bottom: 1.5rem;
+      margin-top: 0.1rem;
+      line-height: 1.1;
+      background: var(--green-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+    #about .subtitle {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--gray-light);
+      margin-bottom: 1.2rem;
+      opacity: 0.96;
+    }
+
+.certificate-preview {
+  width: 100%;
+  max-width: 350px;
+  border-radius: 14px;
+  margin-top: 1.5rem;
+  cursor: pointer;
+  transition: transform .25s ease, box-shadow .25s ease;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.certificate-preview:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 20px rgba(0,255,120,0.25);
+}
+
+.cert-link { display: inline-block; }
+
+
+#projects.section {
+  background: transparent;
+  padding: 1.2rem 0 0 0;
+  max-width: 1000px;
+  margin: 0 auto 0.8rem auto;
+}
+
+#projects h2 {
+  font-size: var(--header-size);
+  font-weight: 900;
+  color: var(--green);
+  background: var(--green-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+  margin-bottom: 2.5rem; 
+  width: 100%;
+}
+
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+  gap: 2rem 1.3rem;
+  margin-top: .7rem;
+  justify-items: center;
+  width: 100%;
+  align-content: center;
+}
+.card {
+  background: var(--glass-dark);
+  backdrop-filter: blur(12px);
+  color: var(--gray-light);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform .23s, box-shadow 0.19s, border-color 0.17s;
+  cursor: pointer;
+  border: 2px solid transparent;
+  width: 100%;
+  max-width: 300px;
+  min-width:175px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.card img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  background: var(--gray-medium);
+  filter: brightness(0.94) saturate(1.1);
+  border-bottom: 1px solid #353b41;
+  display: block;
+}
+.card h3 {margin: .7rem .5rem .41rem .5rem; font-size: 1.05rem; color: var(--green); font-weight: 800;}
+.card p {margin: 0 .7rem .6rem .7rem; font-size: .99rem; color: var(--gray-light); opacity: 0.86;}
+.card:hover {
+  transform: scale(1.042) translateY(-6px);
+  box-shadow: 0 12px 34px rgba(8,214,100,0.18);
+  border-color: var(--green);
+}
+
+#contact.section {
+  background: var(--glass-dark);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 2.2rem 3vw 1.7rem 3vw;
+  max-width: 430px;
+  text-align: center;
+  margin: 0 auto .8rem auto;
+}
+#contact h2 {
+  font-size: var(--header-size);
+  font-weight: 900;
+  color: var(--green);
+  background: var(--green-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+  margin-top: .12rem;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+#contact p {font-size: 1.06rem; color: var(--gray-light); margin-bottom: 1.2rem;}
+#contact a {
+  color: var(--green); text-decoration: underline; font-weight: 700; transition: color .16s;
+}
+#contact a:hover, #contact a:focus {
+  color: #36ee81; text-decoration: none;
+}
+#contact form {
+  display: flex; flex-direction: column;
+  max-width: 99vw; margin: 0 auto 0.8rem;
+  gap: .6rem; background: var(--bg-black);
+  padding: 1.5rem .7rem; border-radius: 19px;
+  box-shadow: var(--shadow); border: 1px solid var(--gray-medium);
+  align-items: center; justify-content: center; width:100%;
+}
+#contact input,
+#contact textarea {
+  width: 100%; box-sizing: border-box;
+  padding: .89rem; border-radius: 9px; border: 1.1px solid var(--gray-medium);
+  font-size: .98rem; background: var(--gray-medium);
+  color: var(--gray-light); font-family: inherit;
+  resize: vertical; margin-bottom: .1rem;
+}
+#contact input:focus, #contact textarea:focus {
+  border-color: var(--green); outline: none; background: #23272b; color: var(--gray-light);
+}
+#contact button {
+  background: var(--green-grad);
+  color: var(--bg-black);
+  border: none;
+  padding: .97rem 0;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1.09rem;
+  box-shadow: none;   /* glow removed */
+  letter-spacing: .07em;
+  width: 100%;
+  max-width: 250px;
+  margin-top: .2rem;
+}
+
+#contact button:hover {
+  background: linear-gradient(90deg, #38f87b 15%, #08d664 85%);
+  color: var(--gray-dark);
+  box-shadow: none;   /* glow removed */
+}
+
+
+#formMessage {
+  text-align: center; margin-top: 0.38rem;
+  font-size: .98rem; color: var(--green);
+  min-height: 15px; opacity: .94;
+}
+footer {
+  text-align: center; padding: 1.3rem 0 1.6rem 0;
+  background: transparent;
+  color: var(--gray-light);
+  font-size: .95rem; border-top: 1px solid #282828; opacity: 0.74;
+  width: 100vw; filter: blur(.2px); margin-top:auto;
+}
+/* Fade + Slide-Up Animation */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#about > div {
+  animation: fadeUp 0.9s ease forwards;
+  opacity: 0;
+}
+
+#about > div:nth-child(1) { animation-delay: 0.1s; }
+#about > div:nth-child(2) { animation-delay: 0.3s; }
+#about > div:nth-child(3) { animation-delay: 0.5s; }
+#about > div:nth-child(4) { animation-delay: 0.7s; }
+
+/* Floating profile */
+.profile-img {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Smooth fade when switching sections */
+.section {
+  transition: opacity .5s ease, transform .5s ease;
+}
+.section.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <div class="logo" onclick="showSection('about')">SPUFFYFFET</div>
+      <ul>
+        <li><a id="navAbout" class="active">About</a></li>
+        <li><a id="navProjects">Projects</a></li>
+        <li><a id="navContact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+<section id="about" class="section active">
+
+  <!-- ABOUT BOX -->
+  <div style="
+    background: var(--glass-dark);
+    padding: 25px;
+    border-radius: 22px;
+    width: 90%;
+    max-width: 520px;
+    margin-bottom: 25px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  ">
+    <img class="profile-img" src="emman.jpg" alt="My Photo">
+    <h1>Hello, I'm Emmanuel</h1>
+    <div class="subtitle">
+      Student • Software Engineer • Beginner Programmer
+    </div>
+  </div>
+
+  <!-- ABOUT ME BOX -->
+<div style="
+  background: var(--glass-dark);
+  padding: 20px;
+  border-radius: 22px;
+  width: 90%;
+  max-width: 520px;
+  margin-bottom: 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
+">
+  <h2 style="color:var(--green); margin-bottom:10px;">About Me</h2>
+  <p style="font-size:1.05rem; line-height:1.55; opacity:0.9; padding:0 6px;">
+A Software Engineering student at Trinity University of Asia, learning step by step by trying things out myself and practicing through small projects as I continue building my skills in IT.  </p>
+</div>
+
+  <!-- SKILLS BOX (ADDED - original logos) -->
+  <div style="
+    background: var(--glass-dark);
+    padding: 20px;
+    border-radius: 22px;
+    width: 90%;
+    max-width: 520px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  ">
+    <h2 style="color:var(--green); margin-bottom:14px;">Skills</h2>
+
+    <div style="
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      width:86%;
+      margin:0 auto;
+    ">
+      <!-- C++ -->
+      <div style="
+        background:#1f2225;
+        padding:12px 14px;
+        border-radius:12px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        border:1px solid rgba(255,255,255,0.06);
+      ">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" width="26" height="26" alt="C++ logo">
+        <span style="font-weight:600;">C++</span>
+      </div>
+
+      <!-- HTML -->
+      <div style="
+        background:#1f2225;
+        padding:12px 14px;
+        border-radius:12px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        border:1px solid rgba(255,255,255,0.06);
+      ">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" width="26" height="26" alt="HTML logo">
+        <span style="font-weight:600;">HTML</span>
+      </div>
+
+      <!-- Java (full row) -->
+      <div style="
+        background:#1f2225;
+        padding:12px 14px;
+        border-radius:12px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        grid-column:1 / 3;
+        border:1px solid rgba(255,255,255,0.06);
+      ">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" width="26" height="26" alt="Java logo">
+        <span style="font-weight:600;">Java</span>
+      </div>
+    </div>
+  </div>
+  <!-- END SKILLS BOX -->
+
+<!-- TOOLS BOX -->
+<div style="
+  background: var(--glass-dark);
+  padding: 25px;
+  border-radius: 22px;
+  width: 90%;
+  max-width: 520px;
+  margin-bottom: 25px;
+  text-align: center;
+  box-shadow: var(--shadow);
+">
+  <h2 style="color:var(--green); margin-bottom:20px;">Tools</h2>
+
+  <div style="
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    width:85%;
+    margin:0 auto;
+  ">
+
+    <!-- VS CODE -->
+    <div style="
+      background:#1f2225;
+      padding:12px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      border:1px solid rgba(255,255,255,0.1);
+    ">
+      <img src="vscode.png" width="32">
+      <span>VS Code</span>
+    </div>
+
+    <!-- CANVA -->
+    <div style="
+      background:#1f2225;
+      padding:12px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      border:1px solid rgba(255,255,255,0.1);
+    ">
+      <img src="canva.png" width="32">
+      <span>Canva</span>
+    </div>
+
+    <!-- CHATGPT -->
+    <div style="
+      background:#1f2225;
+      padding:12px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      grid-column:1 / 3;
+      border:1px solid rgba(255,255,255,0.1);
+    ">
+      <img src="chatgpt.png" width="32">
+      <span>ChatGPT</span>
+    </div>
+
+  </div>
+</div>
+
+  <!-- CERTIFICATES BOX -->
+  <div style="
+    background: var(--glass-dark);
+    padding: 25px;
+    border-radius: 22px;
+    width: 90%;
+    max-width: 520px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  ">
+    <h2 style="color:var(--green); margin-bottom:18px;">Certificates</h2>
+
+    <a href="certificate.jpg" target="_blank" class="cert-link">
+      <img src="certificate.jpg" alt="Certificate" class="certificate-preview" style="max-width:100%;">
+    </a>
+  </div>
+
+</section>
+
+      </section>
+
+      <!-- PROJECTS -->
+      <section id="projects" class="section">
+        <h2>Projects</h2>
+        <div class="grid">
+
+<a href="kurama.html" target="_blank" style="text-decoration:none; color:inherit;">
+  <div class="card">
+    <img src="kurama_bg.jpg" alt="Kurama Pixel Art">
+    <h3>Kurama Pixel Art</h3>
+    <p>
+      A Kurama Pixel Art made using HTML. Click to view a screenshot of the artwork.
+    </p>
+
+    <pre style="white-space:pre-wrap;word-break:break-word;
+    font-size:.98em;color:#67f891;background:transparent;
+    box-shadow:none;margin:0 0 10px 0;">
+<b>Main Languages:</b> HTML
+    </pre>
+
+  </div>
+</a>
+
+        <a href="textgame.html" target="_blank" style="text-decoration:none; color:inherit;">
+            <div class="card">
+              <img src="washing%20machine.webp" alt="Washing Machine">
+              <h3>Text Based Game</h3>
+              <p>
+                A command-line game written in C++ that allows players to navigate scenarios through choice-based actions. 
+                The project demonstrates foundational programming skills and beginner-level game logic.
+              </p>
+              <pre style="white-space:pre-wrap;word-break:break-word;font-size:.98em;color:#67f891;background:transparent;box-shadow:none;margin:0 0 10px 0;">
+<b>Main Languages:</b> C++
+              </pre>
+            </div>
+          </a>
+
+
+<a href="https://worktua.rf.gd/?i=1" target="_blank" style="text-decoration:none; color:inherit;">
+  <div class="card">
+    <img src="worktua_bg.png" alt="WorkTUA Screenshot">
+    <h3>WorkTUA</h3>
+    <p>A simple job hub helping students connect with work opportunities.</p>
+  </div>
+</a>
+
+
+
+  
+
+        </div>
+      </section>
+
+      <!-- CONTACT -->
+      <section id="contact" class="section">
+        <h2>Contact</h2>
+        <p>Want to work together? Let's talk!<br>
+          Email me: <a href="mailto:your.email@example.com">emmanbacton278@gmail.com</a>
+        </p>
+        <form id="contactForm">
+          <input type="text" id="name" placeholder="Your Name" required>
+          <input type="email" id="email" placeholder="Your Email" required>
+          <textarea id="message" placeholder="Your Message" required></textarea>
+          <button type="submit">Send</button>
+        </form>
+        <div id="formMessage"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 SPUFFYFFET</p>
+  </footer>
+
+  <script>
+    function showSection(which){
+      const ids = ['about','projects','contact'];
+      ids.forEach(id=>{
+        document.getElementById(id).classList.remove('active');
+        document.getElementById('nav'+capitalize(id)).classList.remove('active');
+      });
+      document.getElementById(which).classList.add('active');
+      document.getElementById('nav'+capitalize(which)).classList.add('active');
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function capitalize(str){ return str.charAt(0).toUpperCase() + str.slice(1); }
+
+    document.getElementById('navAbout').onclick = ()=>showSection('about');
+    document.getElementById('navProjects').onclick = ()=>showSection('projects');
+    document.getElementById('navContact').onclick = ()=>showSection('contact');
+    document.querySelector('.logo').onclick = ()=>showSection('about');
+
+    document.getElementById('contactForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      document.getElementById('formMessage').textContent = "Thank you for reaching out! I'll get back to you soon.";
+      document.getElementById('contactForm').reset();
+    });
+  </script>
+
+</body>
+</html>   

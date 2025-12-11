@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Washee Washee — Retro Terminal</title>
+<style>
+  /* Page background */
+  :root {
+    --bg: #000000;
+    --terminal-bg: #000;
+    --neon: #39ff6b;
+    --neon-dim: rgba(57,255,107,0.22);
+    --border: #34e86a;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);font-family: "Courier New", Courier, monospace;color:var(--neon);}
+  /* Centered terminal box */
+  .term-wrap {
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    box-sizing:border-box;
+  }
+  .terminal {
+    width:920px;              /* similar width to screenshot */
+    max-width:95%;
+    background:linear-gradient(180deg,#000 0%, #010101 100%);
+    border-radius:14px;
+    border:3px solid var(--border);
+    box-shadow: 0 12px 60px rgba(0,0,0,0.9), 0 0 40px var(--neon-dim) inset;
+    padding:28px;
+    box-sizing:border-box;
+  }
+  /* inside screen area */
+  .screen {
+    background: #000;
+    color: var(--neon);
+    padding: 18px;
+    border-radius:8px;
+    min-height:420px;
+    max-height:62vh;
+    overflow:auto;
+    white-space: pre-wrap;
+    line-height:1.55;
+    font-size:1.05rem;
+    box-shadow: inset 0 0 28px rgba(0,0,0,0.6);
+    border: 1px solid rgba(57,255,107,0.06);
+    font-family: "Courier New", Courier, monospace;
+  }
+  /* green prompt input area */
+  .prompt-row {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-top:14px;
+  }
+  .label {
+    color: var(--neon);
+    font-weight:700;
+    min-width:140px;
+    font-family: "Courier New", Courier, monospace;
+  }
+  input.terminal-input {
+    flex:1;
+    background: transparent;
+    border: 2px solid rgba(57,255,107,0.22);
+    padding:12px 14px;
+    color:var(--neon);
+    font-family: "Courier New", Courier, monospace;
+    font-size:1.02rem;
+    border-radius:8px;
+    outline:none;
+    box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 18px rgba(57,255,107,0.04) inset;
+  }
+  input.terminal-input:focus {
+    box-shadow: 0 0 26px rgba(57,255,107,0.12), 0 8px 28px rgba(0,0,0,0.6);
+    border-color: var(--border);
+  }
+  .small-hint { color: rgba(57,255,107,0.62); font-size:0.92rem; margin-top:8px; }
+  .health-line { margin-top:12px; color:var(--neon); font-weight:700; }
+  .divider { margin:10px 0; color: rgba(57,255,107,0.18); }
+  button.transparent {
+    background:transparent;border:1px solid rgba(57,255,107,0.12); color:var(--neon); padding:8px 10px; border-radius:8px; cursor:pointer;
+  }
+  .footer-row { display:flex; gap:10px; align-items:center; margin-top:12px; justify-content:flex-end; }
+  /* responsive tweaks */
+  @media (max-width:640px){
+    .terminal { padding:16px; }
+    .screen { font-size:0.95rem; min-height:60vh; }
+    .label { min-width:110px; }
+  }
+</style>
+</head>
+<body>
+  <div class="term-wrap">
+    <div class="terminal" role="application" aria-label="Washee Washee Retro Terminal">
+      <div id="screen" class="screen" tabindex="0" aria-live="polite">
+        <!-- text printed here -->
+      </div>
+
+      <div class="prompt-row">
+        <div class="label">Enter:</div>
+        <input id="inputBox" class="terminal-input" autocomplete="off" placeholder="Type here and press Enter" />
+      </div>
+
+      <div class="small-hint" id="hint">Type a number (1–5) for choices.</div>
+      <div class="footer-row">
+        <div id="healthUI" class="health-line">Health: 100</div>
+        <button id="restartBtn" class="transparent" title="Restart game">Restart</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ============================
+   30 scenarios — expanded stories
+   (choices & health preserved)
+   ============================ */
+const scenarios = [
+  { title: "Scenario 1 - Entering a Packed Laundry Shop", lines: [
+      "As you step through the heavy glass door, a warm wash of steam and detergent hits you — the air is thick and slightly sticky.",
+      "Machines hum in a tireless chorus; the floor vibrates faintly underfoot with the rhythm of cycles finishing and starting.",
+      "People move like clockwork between rows, clutching baskets, checking phones, and calling out brief instructions to companions.",
+      "You thread through narrow aisles searching for an open table, feeling elbows and laundry brushes as customers pass too close.",
+      "A child tugs at a parent's sleeve nearby; the parent apologizes while juggling a basket and a receipt, and you sense the fragile order of the room.",
+      "Small sounds — rips of laundry bags, coins, a timer's beep — add to a sense that everyone here has urgent business.",
+      "Your shoulders tighten at the thought of wasting time: a single wrong move may force you into a scramble.",
+      "The choice you make now — quick or careful — will shape how the rest of this trip unfolds and how much you can control.",
+    ], choices:[
+      { text: "Claim a near machine and start sorting immediately.", result:["You rush in and get a spot, but you fumble and drop a few items.","This costs time and makes you feel rushed."], health:-5 },
+      { text: "Pause and read the posted rules before you begin.", result:["You read the rules and feel more confident about the steps.","This calm helps you work more steadily."], health:5 },
+      { text: "Stand back and wait until more space opens.", result:["Waiting keeps you safe from mistakes but wastes your time.","You worry about losing the best machines."], health:-5 },
+      { text: "Ask a nearby customer for help finding a spot.", result:["A helpful customer points out a good spot and shares a quick tip.","You feel less anxious and start smoothly."], health:10 },
+      { text: "Leave and come back when it is quieter.", result:["You leave to avoid the crowd, but returning later will cost more time.","Your plan may need extra effort to finish today."], health:-10 }
+    ]
+  },
+
+  { title: "Scenario 2 - The Unstable Machine", lines: [
+      "A washer sits free but its exterior trembles faintly as if it resents being idle — regulars glance at it with caution.",
+      "A faded sticker warns of past jams; someone nearby mutters about an extra cycle they had to pay for last month.",
+      "You feel the pull between grabbing the convenience and avoiding the risk of a rewash or delay.",
+      "The machine's small movements look innocent at first, but you can almost hear the promise of trouble in the clank of its drum.",
+      "Other customers edge closer with wary looks; one older man crosses his arms and shakes his head.",
+      "Even if it works, there is a chance of a loud hiccup that draws attention and forces a clumsy fix.",
+      "You weigh the cost of speed against the peace of mind you may buy by waiting or asking for help.",
+      "Decide how much you trust luck versus restraint in a place where machines can turn your day upside down.",
+    ], choices:[
+      { text: "Use the machine now and hope it holds.", result:["You start the wash and the machine begins to wobble strongly.","You stop it and rebalance, losing time and feeling tense."], health:-10 },
+      { text: "Walk away and wait for a better unit.", result:["You find a more stable washer a few minutes later and avoid trouble.","The extra wait saves you stress and possible damage."], health:10 },
+      { text: "Call a staff member to check it first.", result:["Staff inspects and secures the loose part, then clears the machine for use.","Their help makes you feel safe and saves you time."], health:15 },
+      { text: "Test it empty for a short spin before loading.", result:["A short test confirms the wobble so you avoid using that unit.","You feel cautious but relieved you did not risk your clothes."], health:5 },
+      { text: "Ask a regular if they have used it safely.", result:["A regular warns you about past problems, which makes you more careful.","You rethink your options and pick a safer plan."], health:-5 }
+    ]
+  },
+
+  { title: "Scenario 3 - Sorting Clothes With Limited Space", lines:[
+      "The sorting table is a jigsaw of clothes and baskets; someone’s sweater hangs off the edge and brushes your arm as you try to work.",
+      "A damp ring from a previous load sits in the middle and a faint smell tells you stains linger where folks have rushed.",
+      "People brush past closely, dropping lint and footsteps; a toddler laughs out loud, disrupting the focus of others.",
+      "Every fold you make must be precise — a single color mix can ruin a favorite shirt.",
+      "Your hands stiffen with a small panic: there’s no room to breathe, and haste invites costly mistakes.",
+      "You imagine the back-and-forth: fix, rewash, repeat — each small error multiplies late into your day.",
+      "In a tight space, the difference between steady hands and rushed ones becomes all the difference.",
+      "Think steady, think safe; the right move here will spare future headaches.",
+    ], choices:[
+      { text: "Rush through sorting to free the space quickly.", result:["Rushing causes a color mix and you have to separate items again later.","This mistake costs more time overall."], health:-10 },
+      { text: "Ask a neighbor politely for more room.", result:["The neighbor makes space willingly and you work calmly.","The small kindness saves you time and worry."], health:15 },
+      { text: "Move items to the edge and sort carefully.", result:["Careful sorting keeps items safe but slows you down.","You accept the delay to avoid future problems."], health:5 },
+      { text: "Wait for a better workspace to open.", result:["Waiting avoids errors but feels like lost time when others move ahead.","You may have to rush later to catch up."], health:-5 },
+      { text: "Use the floor briefly to sort despite the risk.", result:["Using the floor leads to damp spots and a need to rewash some items.","This makes the whole trip longer and more tiring."], health:-15 }
+    ]
+  },
+
+  { title: "Scenario 4 - Error Code Warning", lines:[
+      "A shrill beep cuts through the hum as your washer flashes an \"Unbalanced Load\" warning in harsh red letters.",
+      "The sound draws a few glances and a ripple of whispers circulate about someone else's loud mishap last week.",
+      "You squeeze inside the drum and start shifting items, feeling the eyes of a few waiting customers.",
+      "Each item you move costs time but may avert a violent spin and the embarrassment that follows.",
+      "The machine’s display blinks impatiently — there’s pressure to fix it right and fast.",
+      "You weigh whether to try to balance it yourself or flag down a staff member under the watchful room.",
+      "Fix it calmly now or risk a loud failure later; either path changes the cost of your visit.",
+      "Take a measured step so the machine accepts the load and the room goes on.",
+    ], choices:[
+      { text: "Redistribute the load carefully and try again.", result:["You rebalance slowly and the machine runs smoothly when restarted.","This careful choice saves time later and keeps clothes safe."], health:10 },
+      { text: "Remove a few items to reduce weight.", result:["Removing items means you will run another cycle but avoids the wobble.","You pay the small cost for stable results."], health:-5 },
+      { text: "Call staff and ask for help with the error.", result:["Staff helps secure the drum and you feel reassured.","Their support keeps the process safe and quick."], health:15 },
+      { text: "Ignore the warning and start the machine anyway.", result:["Ignoring the warning causes a strong shake later and delays everyone.","You face annoyed looks and wasted time."], health:-20 },
+      { text: "Move your laundry to another washer.", result:["Moving to another washer avoids the problem but loses minutes.","You trade time for peace of mind."], health:-5 }
+    ]
+  },
+
+  { title: "Scenario 5 - Detergent Spill Near the Back Door", lines:[
+      "A bottle tips with a wet shudder and a slick trail of detergent snakes across the tile near the back door.",
+      "Staff leap into action with cones and mops, cutting off a corridor briefly and displacing a line of baskets.",
+      "You watch as the hallway beyond opens to a dim, unfamiliar back area — a place people rarely notice.",
+      "The rush of movement causes small collisions and hurried apologies, and your path is blocked for a moment.",
+      "A helpful customer scoops at the spill while staff bark short orders that tighten the air.",
+      "You consider stepping in to help or letting the professionals handle the mess.",
+      "This small mistake calls for quick choices — one action speeds recovery, another buys you time but costs minutes.",
+      "Decide whether to be part of the fix or preserve your day.",
+    ], choices:[
+      { text: "Help mop up the spill to reduce danger.", result:["You help clean and the staff thanks you for the quick action.","The area becomes safe sooner and people can pass again."], health:20 },
+      { text: "Warn others and guide traffic around the area.", result:["You guide people around the spill and reduce accidents.","This keeps others safe while staff handles the cleanup."], health:5 },
+      { text: "Move your laundry away and continue elsewhere.", result:["Moving your load avoids the hazard but costs time.","You feel relieved but need to catch up later."], health:-5 },
+      { text: "Call staff and wait for them to arrive.", result:["Staff arrives and clears the spill professionally.","The delay is short and the shop returns to order."], health:10 },
+      { text: "Walk through carefully to reach your machine.", result:["You slip slightly and feel shaken by the near fall.","The minor injury costs your comfort and focus."], health:-15 }
+    ]
+  },
+
+  { title: "Scenario 6 - Tension in the Queue", lines:[
+      "Two customers erupt in a heated argument over the next dryer, their voices rising sharp enough to cut through the background hum.",
+      "People stop folding, machines seem louder, and the room holds a collective breath while the dispute plays out.",
+      "You can feel eyes drifting toward you as the argument swells — the atmosphere thickens with annoyance and worry.",
+      "A staff member hurries forward, but the altercation has already seeded unease among nearby customers.",
+      "Your options range from staying out of it to stepping in and calming the moment.",
+      "A single gentle word could restore order, but a wrong step might make you a target of the anger.",
+      "Choose whether to help dissolve the conflict or protect yourself and your laundry.",
+      "Decide the least risky path that keeps your load safe and minds calm.",
+    ], choices:[
+      { text: "Intervene calmly to cool the situation.", result:["You speak calmly and the argument cools down quickly.","People return to their tasks and the room relaxes."], health:15 },
+      { text: "Move away from the argument to find a quiet spot.", result:["You remove yourself from the noise and find a quiet corner.","This keeps you safe but wastes some time."], health:-5 },
+      { text: "Call a staff member to mediate the dispute.", result:["Staff arrives and manages the conflict firmly.","Order returns and you feel safer afterward."], health:10 },
+      { text: "Ignore it and keep working on your laundry.", result:["You focus on your work but the tension remains around you.","This makes it harder to concentrate on small tasks."], health:-10 },
+      { text: "Leave the shop to avoid trouble entirely.", result:["You leave to avoid trouble, but you do not finish your chores.","The lost time may require a return trip later."], health:-20 }
+    ]
+  },
+
+  { title: "Scenario 7 - Overheated Dryer Incident", lines:[
+      "A dryer emits a faint burning scent — a small, sharp smell that sets people on edge and brings hands to vents.",
+      "Staff rush to check vents and the room clears as customers back away from the machine.",
+      "Memories ripple of small flames from months before; anxiety flickers across faces like reflected heat.",
+      "You must decide whether to move your load or help staff contain the issue.",
+      "Each second spent standing near the machine feels charged with risk.",
+      "The choice is between a quick retreat or a small heroic action that might help others.",
+      "Even careful choices carry cost; a wrong move could mean a minor injury or a ruined trip.",
+      "Take sensible steps to keep your items safe and yourself unharmed.",
+    ], choices:[
+      { text: "Move your clothes away from that dryer fast.", result:["You move your load quickly and avoid heat damage.","This keeps your items safe and you feel relieved."], health:10 },
+      { text: "Alert staff and call others to keep distance.", result:["Staff thanks you and controls the area soon after.","Their quick action restores calm to the shop."], health:15 },
+      { text: "Open the dryer yourself to check inside.", result:["Opening it yourself causes a small flare and you get hurt slightly.","You must treat the injury and your trip becomes worse."], health:-20 },
+      { text: "Stay and watch the staff handle it.", result:["Watching keeps you informed but you feel anxious while waiting.","The stress lowers your comfort for the rest of the visit."], health:-5 },
+      { text: "Move your load to another dryer a few steps away.", result:["You move your clothes to a safe dryer and lose a bit of time.","This trade makes you feel steady and protected."], health:5 }
+    ]
+  },
+
+  { title: "Scenario 8 - A Missing Item", lines:[
+      "A shirt you remember folding is nowhere to be seen and an odd panic flutter rises in your chest.",
+      "You scan the drum, under benches, and ask with a steady voice in case someone slipped it away by accident.",
+      "Nearby, someone whispers about items lost near the back hallway in the past — a rumor that tightens the room.",
+      "You must decide whether to search thoroughly now or rely on staff and risk the item being gone forever.",
+      "Each moment spent hunting may cost the rest of your schedule.",
+      "But finding a small, cherished piece can make the entire trip feel worthwhile.",
+      "Make a choice that balances the chance of recovery with the price of time lost.",
+      "Act quickly — small actions now may save your favorite shirt.",
+    ], choices:[
+      { text: "Search every nearby corner and under benches.", result:["You find the shirt under a bench and feel great relief.","The saved item brightens your trip and you relax."], health:15 },
+      { text: "Ask staff to check cameras or lost items for you.", result:["Staff looks through footage and asks you to wait kindly.","It takes time but they may find help for you."], health:5 },
+      { text: "Move on and accept the item may be gone.", result:["You move on, but the missing item stays on your mind.","The small loss makes you feel uneasy for the rest of the day."], health:-10 },
+      { text: "Ask nearby customers if they saw the missing item.", result:["A nearby customer admits picking it up by mistake and returns it.","You are grateful and see that asking worked well."], health:20 },
+      { text: "Write a note on the shop board asking for help.", result:["Posting a note may help but is not quick.","You wait and hope someone responds later."], health:5 }
+    ]
+  },
+
+  { title: "Scenario 9 - Advice From a Stranger", lines:[
+      "A stranger offers a quick tip about stain care, but his repeated glances toward the dim back doorway make your skin prickle.",
+      "He speaks kindly, voice soft and helpful, but there’s a hollow pull in his manner that doesn’t sit right.",
+      "Your instincts warn of a small danger masked by polite words.",
+      "You must choose whether to accept help that may save time or maintain distance and stay in control.",
+      "Even a helpful hint can come bundled with unwanted attention.",
+      "Your safety and the speed of your tasks both depend on this small social gamble.",
+      "Trust your sense and pick the approach that preserves both calm and control.",
+      "Be polite but keep boundaries if anything feels off.",
+    ], choices:[
+      { text: "Accept his advice and follow a quick tip.", result:["You try the tip and it helps a little with the task.","Still, the stranger's manner leaves you cautious."], health:10 },
+      { text: "Decline politely and continue your work.", result:["You keep control of your routine and avoid unease.","The simple distance keeps you safer in the busy shop."], health:5 },
+      { text: "Ask him why he keeps looking toward the back.", result:["His vague answer makes you more suspicious and alert.","You prepare to act quickly if needed."], health:-10 },
+      { text: "Keep distance and thank him for the thought.", result:["You accept the help with thanks but stay clear of close talk.","This balance keeps you efficient and safe."], health:15 },
+      { text: "Tell staff about his odd behavior so they can watch.", result:["Staff notes the stranger and watches the area for safety.","The added attention brings calm to others."], health:20 }
+    ]
+  },
+
+  { title: "Scenario 10 - Strange Noise Inside the Dryer", lines:[
+      "A sudden knocking sound rings from your dryer and several heads turn to the machine with concern.",
+      "An older customer mentions a story of a vanished person — the memory sends a chill across the room.",
+      "The comment hangs heavy in the air and colors how people view the noise coming from the drum.",
+      "You can stop the machine and check, move your items, or call staff while tension grows.",
+      "Each option trades time, worry, or risk — and the wrong call could cost more than minutes.",
+      "Careful action here might uncover nothing, or it could resolve a deeper problem before it gets worse.",
+      "Decide with steadiness; a calm check may protect your load and ease others' anxiety.",
+      "Small courage now can avoid larger trouble later.",
+    ], choices:[
+      { text: "Stop the dryer and inspect inside carefully.", result:["You open the drum and find a small object causing the knock, then remove it.","The issue is solved and you feel safer going forward."], health:20 },
+      { text: "Lower heat and listen for changes to the sound.", result:["Lowering heat reduces stress on the machine and the sound calms a little.","You keep an eye on the cycle and stay ready."], health:5 },
+      { text: "Move your clothes to another machine nearby.", result:["Moving your clothes avoids risk but takes extra time and effort.","You trade speed for safety."], health:10 },
+      { text: "Call staff and explain the noise you hear.", result:["Staff inspects and fixes the drum, reassuring nearby customers.","Their action restores a measure of calm."], health:15 },
+      { text: "Let the cycle finish and check afterward.", result:["Letting it finish leads to a stall and a longer delay when the dryer fails.","You face extra wait and hassle afterward."], health:-15 }
+    ]
+  },
+
+  { title: "Scenario 11 - Power Flicker and Back Hallway Glimpse", lines:[
+      "The lights stutter and die for a beat — a hush falls as machines pause and people instinctively slow down.",
+      "For a moment the back door swings and reveals a dim hallway with pipes and shadowed steps.",
+      "Staff move quickly to close and check the area, their urgency sharpening the room's tension.",
+      "Memory and rumor surface in whispers; a story of something lost in the basement tugs at the edges of conversation.",
+      "You must keep a calm head and decide whether to ask or simply secure your items.",
+      "A prudent approach keeps your laundry safe and reduces worry for others near you.",
+      "This brief glimpse of the back hall reveals that not everything is meant to be seen.",
+      "Follow instructions and trust staff until the scene is clearly safe.",
+    ], choices:[
+      { text: "Walk over and ask if everything is okay.", result:["Staff explains a latch issue and thanks you for asking.","Their calm helps the room relax again."], health:10 },
+      { text: "Stay where you are and watch how staff responds.", result:["Watching helps you learn what they do, but it also raises your worry.","The extra stress reduces your calm for the visit."], health:-5 },
+      { text: "Move your laundry away from the back area to be safe.", result:["You move belongings a safe distance from the back area and feel steadier.","This small step makes you more comfortable."], health:15 },
+      { text: "Alert another staff member to check quickly.", result:["Another staff member checks thoroughly and reassures customers.","Their presence brings confidence back to the room."], health:20 },
+      { text: "Leave right away through the main exit.", result:["You leave quickly and avoid uncertainty, but you do not finish your chores.","This choice costs completion but brings a fast exit."], health:-20 }
+    ]
+  },
+
+  { title: "Scenario 12 - Stain Treatment Rush", lines:[
+      "Under a bright lamp a stubborn dark stain glares back at you, more visible than you expected.",
+      "A line forms at the stain station and the pressure to act quickly mounts with every impatient glance.",
+      "Harsh chemicals promise speed but risk fading color; gentler methods preserve fabric but take patience.",
+      "You must balance the value of the garment and the time you can spare.",
+      "Staff offer advice and a compact inventory of solutions, but choosing wrong costs money or appearance.",
+      "A careful test on a seam could save the piece; a rash scrub could ruin it.",
+      "Your hands hover over a decision that will echo at home when you put the shirt on.",
+      "Think of future regret versus present convenience and pick the kinder step.",
+    ], choices:[
+      { text: "Use a strong stain remover and scrub firmly.", result:["The strong remover takes out the stain but fades the color slightly.","You balance success with a small cost to the fabric."], health:-10 },
+      { text: "Try a gentle treatment and wait for results.", result:["Gentle care preserves the material and slowly lifts the stain.","This patient choice keeps the item intact."], health:5 },
+      { text: "Ask staff which product works best on this fabric.", result:["Staff gives a good suggestion and the item improves quickly.","Their help saves you time and worry."], health:15 },
+      { text: "Skip treatment and hope the stain fades later.", result:["Skipping leaves the mark visible and you regret not fixing it.","The small loss nags at you later."], health:-5 },
+      { text: "Move to a quieter area to treat the stain slowly.", result:["A quiet place lets you work carefully and raises the chance of success.","The minor wait is worth the better result."], health:10 }
+    ]
+  },
+
+  { title: "Scenario 13 - Water Pressure Failure", lines:[
+      "An announcement crackles: the building is losing water pressure and some washers might not fill properly.",
+      "People hustle to check cycles and murmurs spike as customers try to save their loads.",
+      "You can pause, move, or try to finish the cycle despite the risk of a poor wash.",
+      "Water here is a resource; when it falters, choices become urgent and practical.",
+      "Pausing the cycle preserves fabric but delays everything else you've planned for the day.",
+      "A patient move to a filling machine may cost steps but saves a rewash later.",
+      "Staff offers a workaround but it requires a little time and cooperation between users.",
+      "Decide quickly and act in a way that keeps your garment clean without wasting detergent.",
+    ], choices:[
+      { text: "Pause your cycle and wait for pressure to return.", result:["Pausing avoids poor washing but delays your whole plan.","You accept the wait to protect the fabric."], health:-5 },
+      { text: "Move your laundry to a machine that still fills well.", result:["You find a working machine and keep the cycle moving.","This quick move saves time and effort."], health:10 },
+      { text: "Ask staff for advice and instructions.", result:["Staff helps with a workaround and helps you keep your items safe.","Their guidance eases your worry."], health:15 },
+      { text: "Try to finish the cycle anyway and hope it works.", result:["Trying to run with low pressure leaves clothes underwashed and wastes detergent.","You accept a poor result and more trips later."], health:-15 },
+      { text: "Leave and come back later when pressure is stable.", result:["Returning later may work but costs time and planning.","You may also face another long wait."], health:-10 }
+    ]
+  },
+
+  { title: "Scenario 14 - Folding Area Tension", lines:[
+      "Folding tables are scarce and people jockey for a clean corner, balancing haste with careful stacking.",
+      "A misplaced shirt here can mix with another and cause a small, frustrating disaster.",
+      "You notice a steady breeze of small problems as people rush and a stack wobbles nearby.",
+      "Good folding requires space and calm hands — both in short supply when the clock is ticking.",
+      "The choice is between a quick, messy fold or a slower, neat approach that protects the fabric.",
+      "Someone offers to share their table but asks for a small favor in return.",
+      "Your choice here shapes the last impression of this trip: neat success or a tangle to fix later.",
+      "Be mindful — careful work now saves time after you leave.",
+    ], choices:[
+      { text: "Rush folding to keep up with others.", result:["Rushing creates wrinkles and small mix-ups you will need to fix later.","The time lost outweighs the quick finish."], health:-10 },
+      { text: "Ask politely for a larger space to work.", result:["Someone gives you space and you fold without rush.","The careful work makes your items look better."], health:15 },
+      { text: "Fold carefully even if it takes more time.", result:["Careful folding keeps items neat and saves future effort.","You work steadily and feel in control."], health:5 },
+      { text: "Place items aside and return later to finish.", result:["Placing items aside risks them being moved or mixed by others.","You may have more work when you return."], health:-5 },
+      { text: "Offer to share space with someone nearby.", result:["Sharing space builds goodwill and eases the task for both of you.","You finish with less stress and better results."], health:10 }
+    ]
+  },
+
+  { title: "Scenario 15 - Supervisor Observation", lines:[
+      "A supervisor moves slowly through the shop, clipboard in hand, and her presence tightens the small errors into visible problems.",
+      "People straighten and check their work as if the quiet watchfulness will reward careful users.",
+      "She pauses at several stations, offering a quick tip or a raised eyebrow depending on what she sees.",
+      "A polite question may lead to helpful guidance; a careless slip could draw a note.",
+      "You can show eagerness to learn or keep your head down and let the day pass.",
+      "A friendly approach may open a small door to support or a fast tip that saves time.",
+      "Your behavior now can make future visits smoother if you show care.",
+      "Choose a respectful path and the supervisor may remember the good manner.",
+    ], choices:[
+      { text: "Ask if she has any tips to improve.", result:["She gives a simple tip and you apply it, which helps your routine.","This small help makes things easier for you."], health:15 },
+      { text: "Continue quietly and follow common best steps.", result:["You follow good steps and avoid trouble under her watch.","Quiet competence keeps you safe from notes or correction."], health:10 },
+      { text: "Apologize for a small mistake to show you care.", result:["Apologizing shows care but may draw short attention from the supervisor.","You accept the small notice to keep goodwill."], health:-5 },
+      { text: "Ignore her and focus on your work alone.", result:["Ignoring may cause you to miss helpful direction and risk a comment.","The small risk could cost time later."], health:-10 },
+      { text: "Ask about shop rules to show cooperation.", result:["Asking about rules shows respect and the supervisor notes your good approach.","This lifts the mood and may help you next time."], health:20 }
+    ]
+  },
+
+  { title: "Scenario 16 - System Lockdown and Basement Access", lines:[
+      "A sudden alarm hushes the room as machines freeze and staff rush toward a basement door to inspect wiring and pumps.",
+      "For a moment the dark stairway is visible and the sight of pipes and tools lends the shop a more serious tone.",
+      "Customers murmur and cluster; some secure their items while others peer toward the staff activity.",
+      "You are asked to follow instructions and decide whether to secure your laundry or step back into the street.",
+      "Leaving items unattended risks loss but lingering may hamper repairs and extend the wait.",
+      "Staff works quickly but methodically, and the right response is often to give them space.",
+      "A measured, cooperative approach protects both belongings and peace of mind.",
+      "Do the small things they ask and trust the process to restore order.",
+    ], choices:[
+      { text: "Follow staff instructions and stay clear of the basement area.", result:["You follow instructions and keep a safe distance from the maintenance area.","This choice protects you and your belongings while staff works."], health:15 },
+      { text: "Ask staff what caused the lockdown so you understand.", result:["Staff explains the check and you feel more calm after hearing the facts.","Knowing the steps helps you relax a little."], health:5 },
+      { text: "Walk toward the basement door to see for yourself.", result:["Approaching the door distracts staff and may slow repairs, which annoys them.","Your curiosity costs time and goodwill."], health:-10 },
+      { text: "Secure your laundry and wait quietly.", result:["You secure your items and wait, which is wise but makes you anxious.","The careful choice avoids loss but tests patience."], health:-5 },
+      { text: "Leave the building until it is fixed.", result:["Leaving keeps you safe but means you may not get your laundry back easily.","You trade safety for inconvenience."], health:-20 }
+    ]
+  },
+
+  { title: "Scenario 17 - Unsecured Storage Room", lines:[
+      "A staff door stands open for a moment, revealing shelves of chemicals and spare parts — the sight feels wrong and a little exposed.",
+      "Someone hurries to close it and apologizes while the idea of negligence hangs in the air.",
+      "You notice that leaving such a room open invites small accidents or theft.",
+      "This small oversight could become a larger issue if not reported and fixed.",
+      "You can mention it now and help prevent future trouble, or keep going and hope nothing happens.",
+      "A note to staff or a quiet word can prompt a fix and show you care for the place.",
+      "Small actions by customers often save more work for staff and safer conditions for everyone.",
+      "Decide if you’ll speak up or stay silent — your choice matters.",
+    ], choices:[
+      { text: "Tell staff firmly that the door was left open.", result:["Staff thanks you and secures the area, making things safer.","Your help shows responsibility to the place."], health:20 },
+      { text: "Keep working but stay alert to staff actions.", result:["Staying alert helps you notice later problems quickly.","This careful stance keeps you ready."], health:10 },
+      { text: "Step closer to look into the room for a moment.", result:["Stepping closer risks being told off for entering a restricted area.","The trouble may cost you time or goodwill."], health:-15 },
+      { text: "Take a photo to show missing items later if needed.", result:["A photo could help show issues, but staff may not like it.","Use care before making records to avoid conflict."], health:-5 },
+      { text: "Ignore it and continue your tasks.", result:["Ignoring keeps you safe but misses a chance to help others.","You may regret not speaking up later."], health:-10 }
+    ]
+  },
+
+  { title: "Scenario 18 - Rinse Inspection Under Pressure", lines:[
+      "Under a bright lamp a garment still shows a sudsy residue and the rinse sink is full of waiting hands.",
+      "The pressure to get a thorough rinse competes with the pressure of the schedule and the coin meter.",
+      "An extra rinse costs cents and time, but going without risks a sticky shirt that draws complaints later.",
+      "You weigh the value of immediate speed against the small care needed for a truly clean result.",
+      "Staff offer a quick rinse option for a fee, and someone nearby offers advice on a fast hand-rinse.",
+      "Your choice here saves minutes or preserves quality — the cost is small but meaningful.",
+      "Choose the route that fits your patience and the value of the clothing in your hands.",
+      "Small care now often spares trips back to the shop tomorrow.",
+    ], choices:[
+      { text: "Run another rinse cycle immediately for the full load.", result:["A full extra rinse clears the soap but delays your whole schedule.","You gain clean clothes but lose time."], health:-5 },
+      { text: "Spot-rinse the soapy item by hand at the sink.", result:["Spot-rinsing fixes the problem quickly and saves time.","This small care is often the best trade."], health:15 },
+      { text: "Ask staff for a fast, small rinse option if they offer one.", result:["Staff helps with a quick rinse and you thank them for their help.","Their aid makes the rest of your trip easier."], health:10 },
+      { text: "Move on and accept the small soap residue.", result:["Accepting the residue keeps your schedule but leaves a small regret.","You decide not to risk extra time."], health:-10 },
+      { text: "Leave the area to avoid the crowd and return later.", result:["You avoid the crowd and return later, but this adds a second trip.","The extra walk costs effort and time."], health:-5 }
+    ]
+  },
+
+  { title: "Scenario 19 - Drying Rack Competition", lines:[
+      "Racks are full and people hover like hawks, watching for any chance to claim empty space.",
+      "A neighbor's glance suggests impatience; a subtle tension runs through the rows of drying clothes.",
+      "Finding a place here feels like negotiating, and a wrong move draws a sharp look or snatched space.",
+      "Kind words often work better than force — a friendly ask can yield shared room.",
+      "You can push forward, ask politely, or retreat for a quieter corner at the cost of distance.",
+      "There’s artistry in claiming a spot without making enemies of nearby customers.",
+      "A well-placed request often ends with a cooperative solution and mutual smiles.",
+      "Choose the path that keeps clothes safe and the mood calm.",
+    ], choices:[
+      { text: "Push ahead to secure a prime rack spot.", result:["Forcing your way gets you a spot but angers a neighbor.","You face tension and may have to calm the other person."], health:-15 },
+      { text: "Ask politely to share space with someone.", result:["Sharing keeps the peace and you both benefit from cooperation.","This polite choice often helps future visits."], health:15 },
+      { text: "Wait for a space to open without pressing.", result:["Waiting is safe but risks nothing good opening up soon.","You may end up with a worse spot later."], health:-5 },
+      { text: "Use a nearby table to air-dry small items instead.", result:["Air-drying small items on a table is clever and keeps them safe.","You finish these items fast and move on."], health:10 },
+      { text: "Move to a less crowded drying area further away.", result:["Moving away reduces stress but adds walking and time.","The trade-off is comfort over speed."], health:-10 }
+    ]
+  },
+
+  { title: "Scenario 20 - Leaving Through the Back Exit", lines:[
+      "The main exit is stacked with people, and staff opens a dim back corridor to ease the flow out.",
+      "The corridor feels narrow and cool; you pause to check pockets and make sure nothing is left behind.",
+      "You consider a last glance into the shop and the staircase to the basement catches your eye briefly.",
+      "A careful exit now means fewer chances to return for a forgotten item later.",
+      "You might thank staff or ask a quick question before stepping into the night.",
+      "The mood outside is quiet, a relief after the tight, humming world inside.",
+      "Finish with a steady step so the trip closes on a calm note rather than a minor panic.",
+      "A final good choice helps you carry peace home along with clean clothes.",
+    ], choices:[
+      { text: "Leave quickly and head straight home.", result:["You leave fast and feel relief at escaping the tense space.","The walk home will feel easy after the busy trip."], health:10 },
+      { text: "Look back one more time into the shop and basement area.", result:["You glance back and feel a small chill but nothing looks odd.","The extra look makes you uneasy but shows care."], health:-5 },
+      { text: "Thank the staff and offer a small tip for their help.", result:["Staff appreciate the tip and your mood lifts a little.","This kindness ends your visit on a good note."], health:15 },
+      { text: "Check every pocket and bag carefully before leaving.", result:["You check pockets and confirm everything is with you.","This careful step saves you a return trip later."], health:20 },
+      { text: "Ask to speak briefly with the supervisor about your visit.", result:["The supervisor listens to your feedback and thanks you.","Your notes may help the shop run better next time."], health:5 }
+    ]
+  },
+
+  /* NEW: Scenario 21 - 30 (fresh, connected to the same setting) */
+  { title: "Scenario 21 - Forgotten Coin Jam", lines:[
+      "Your coin gets stuck halfway into the slot and the washer refuses to accept it, humming but not starting.",
+      "A small crowd forms of people waiting, and murmurs ripple about the machine's temperamental coin feeder.",
+      "The staff member on duty is busy with another fix, and patience thins in the line.",
+      "You can try to retrieve the coin yourself, ask staff, or move to a different machine.",
+      "Prying at the slot risks bending the metal or losing the coin further inside.",
+      "As you weigh options, the timer on another machine ticks closer to finishing and the pressure increases.",
+      "Solve the jam with calm hands or accept a short delay — the choice affects others too.",
+      "Your small action may be remembered by the few watching.",
+    ], choices:[
+      { text: "Try to dislodge the coin yourself carefully.", result:["You retrieve the coin but the slot snags slightly.","Your effort mostly works but it costs a little time."], health:-5 },
+      { text: "Call staff and wait for help to avoid damage.", result:["Staff fixes it quickly and thanks you for waiting.","The measured response keeps everything intact."], health:10 },
+      { text: "Find another machine and move your load.", result:["Moving costs time but you keep the schedule going.","You accept a small delay to avoid fiddling with hardware."], health:-5 },
+      { text: "Leave and return later to avoid the hassle.", result:["Returning later may work but costs another trip.","You trade time now for an uncertain future."], health:-10 },
+      { text: "Ask a helpful stranger for a tool or tip.", result:["A friendly customer lends a small tool and helps you free the coin.","Teamwork saves the day and you feel grateful."], health:15 }
+    ]
+  },
+
+  { title: "Scenario 22 - Strange Smell by the Sink", lines:[
+      "A chemical odor wafts from the sink area, making a few customers wrinkle their noses and step back.",
+      "Staff move to ventilate the area, but the smell lingers and people speculate about a spill or a forgotten bottle.",
+      "You must judge whether to keep working nearby or move your items for safety.",
+      "A cautious move pays off if the smell worsens; staying saves you the trouble of shifting everything.",
+      "Safety and comfort compete with convenience in a small but important choice.",
+      "Your sense of the situation and small personal risk assessment decides the outcome.",
+      "Act to secure your things or accept minor annoyance; either choice carries a small cost.",
+      "Choose what protects your health and peace of mind first.",
+    ], choices:[
+      { text: "Move your items away to avoid the area.", result:["You avoid the smell and feel safer.","A little extra walking keeps you comfortable."], health:10 },
+      { text: "Ask staff what caused the odor and follow their advice.", result:["Staff explains it and offers guidance.","Knowledge makes you feel calmer and informed."], health:5 },
+      { text: "Keep working and assume it will clear soon.", result:["The smell worsens slightly and you feel uneasy.","You carry discomfort through the rest of the trip."], health:-5 },
+      { text: "Ventilate the area with a small portable fan if available.", result:["Your small fan helps a little and others thank you.","The shared help lifts the mood for a moment."], health:15 },
+      { text: "Leave the shop if you feel unwell.", result:["Leaving keeps you safe but means unfinished chores.","You pick health over completion."], health:-20 }
+    ]
+  },
+
+  { title: "Scenario 23 - A Helpful Regular", lines:[
+      "An older regular notices you fidgeting with a setting and offers a practiced suggestion with a wink.",
+      "His method comes from years of trial and quiet tricks that shops never advertise.",
+      "You can accept the help to speed up your process or politely decline to do it your way.",
+      "A shared tip could shave minutes off your routine and keep stress low.",
+      "Trusting a local's technique sometimes leads to a smoother trip and a new acquaintance.",
+      "But not every old trick fits every fabric; caution still matters.",
+      "Choose whether to let experience guide you or hold to your own plan.",
+      "A small, friendly bond may grow from this exchange.",
+    ], choices:[
+      { text: "Try the regular's trick and accept the help.", result:["The trick works well and you save time.","You thank the regular and feel grateful for the guidance."], health:10 },
+      { text: "Politely decline and continue with your own method.", result:["You trust your process and maintain control.","It feels good to stick to what you know."], health:5 },
+      { text: "Ask for more details to understand the trick first.", result:["You learn the steps and try with care.","Knowledge helps you decide whether to use it next time."], health:15 },
+      { text: "Offer to trade a tip of your own in return.", result:["They like the exchange and you form a small camaraderie.","Mutual help makes the shop friendlier."], health:10 },
+      { text: "Ignore the offer and keep focused on your task.", result:["You miss a chance to learn, but you keep your routine steady.","The tradeoff is safe but less social."], health:-5 }
+    ]
+  },
+
+  { title: "Scenario 24 - Lost Receipt Panic", lines:[
+      "Your cycle finishes but the receipt is nowhere to be found — the meter shows a small credit that only the receipt confirms.",
+      "People cheerfully trade tips about where lost slips end up: pockets, floor gaps, the counter.",
+      "You can search carefully, ask staff to verify by machine number, or move on with faith you’ll sort it later.",
+      "A well-documented receipt is a small thing that saves argument later if a charge is wrong.",
+      "You must choose between immediate fuss or an organized solution that costs time.",
+      "The staff are willing to help, but they have other machines to watch.",
+      "Act now to secure certainty or accept the risk of a dispute later.",
+      "Choose the tidy route if you value small proofs over lost minutes.",
+    ], choices:[
+      { text: "Search the immediate area carefully for the receipt.", result:["You find the receipt tucked under a bench and breathe easy.","The small success saves a future problem."], health:15 },
+      { text: "Ask staff to check the machine number for charges.", result:["Staff checks the machine and confirms your credit or balance.","Their help gives you clarity and confidence."], health:10 },
+      { text: "Move on and deal with any later issue if it appears.", result:["You risk a small hassle later but finish today.","You accept a minor uncertainty for present ease."], health:-5 },
+      { text: "Ask a nearby customer if they grabbed it by mistake.", result:["A nearby customer returns it and you feel grateful.","The moment shows how helpful strangers can be."], health:20 },
+      { text: "Write down the machine number and time for proof later.", result:["A note helps if you need to contest a charge later.","Small record-keeping gives peace of mind."], health:5 }
+    ]
+  },
+
+  { title: "Scenario 25 - The Quiet Corner", lines:[
+      "You spy a quiet corner with a slower machine that seems untouched — a small oasis in the bustling room.",
+      "It may take longer but the peace there could let you fold calmly and check pockets gently.",
+      "A quiet spot gives you space to think and a buffer against the rush next to the busiest rows.",
+      "Deciding to move there trades speed for calm and quality of work.",
+      "Your patience may yield tidier results and a less stressful experience.",
+      "Sometimes the extra steps are worth the relief you carry home.",
+      "Choose the corner if you value neatness over finishing first.",
+      "Small choices about pace shape how you feel after the trip.",
+    ], choices:[
+      { text: "Move to the quiet corner and take your time.", result:["You relax and finish neat, grateful for the slower pace.","The little peace makes the trip feel worth it."], health:10 },
+      { text: "Stay where you are to keep the faster pace.", result:["You keep momentum but feel the push of the crowd.","The tradeoff costs calm for speed."], health:-5 },
+      { text: "Ask someone to watch your spot while you step away briefly.", result:["A friendly guard holds your place for you.","The trust eases your mind and helps you finish tasks."], health:15 },
+      { text: "Share the corner with another polite customer.", result:["The shared pace works well and both finish relaxed.","Cooperation builds small neighborhood ties."], health:10 },
+      { text: "Give up the idea and go home frustrated.", result:["You leave without finishing and vow to return with a better plan.","The lost effort nags at you later."], health:-10 }
+    ]
+  },
+
+  { title: "Scenario 26 - Machine Maintenance Notice", lines:[
+      "A small paper note appears on a row of machines: 'Maintenance at 3pm — expect interruptions.'",
+      "Customers inspect the notice and start rearranging cycles to avoid overlap with repairs.",
+      "You can move loads ahead of time or risk an interruption that may stop a cycle mid-run.",
+      "A quick replan may cost steps but prevents a stuck load and frantic staff calls.",
+      "Small alerts like this reward those who read and react with calm speed.",
+      "Your choice now can avoid longer waits or secure a good spot to finish unaffected.",
+      "Take a small detour to keep the rest of your day smooth.",
+      "An early move saves time and stress later.",
+    ], choices:[
+      { text: "Shift your loads to avoid the maintenance window.", result:["You avoid interruption and keep your schedule steady.","A small effort now prevents bigger trouble."], health:10 },
+      { text: "Ask staff which machines will remain available.", result:["They point out unaffected units and help you move quickly.","Staff guidance saves you minutes."], health:15 },
+      { text: "Ignore the notice and hope for the best.", result:["You risk an interruption and a longer wait if maintenance starts earlier.","Hoping pays only sometimes."], health:-10 },
+      { text: "Leave and return after the maintenance.", result:["Returning might work but costs another trip and more time.","You trade present effort for future convenience."], health:-5 },
+      { text: "Speak to a neighbor about sharing machines while they last.", result:["You arrange a helpful swap and finish faster together.","Community cooperation helps everyone."], health:10 }
+    ]
+  },
+
+  { title: "Scenario 27 - A Broken Basket", lines:[
+      "A basket handle snaps with a small, tragic sound, spilling socks and small items in a neat, brief chaos.",
+      "You and a few others scramble to gather stray pieces and restore order as quick apologies ripple around.",
+      "Repairing or replacing a basket costs time or a modest fee; ignoring it risks lost items rolling away.",
+      "You must act quickly to secure stray clothes and help the owner feel less embarrassed.",
+      "A small kindness prevents a small disaster from becoming a big one.",
+      "Your willingness to help may earn thanks and a small smile in an otherwise frantic moment.",
+      "Choose to assist or to stay put; one action knits the room back together faster.",
+      "A little effort here makes the whole place run smoother.",
+    ], choices:[
+      { text: "Help gather the scattered clothes and return them.", result:["You help sort the mess and the owner is relieved.","Your small kindness smooths an awkward moment."], health:15 },
+      { text: "Ask the owner if they want help or a spare basket.", result:["They accept a spare and you feel good to help.","Practical aid brings quick relief."], health:10 },
+      { text: "Ignore it and finish your own work.", result:["You avoid fuss but miss an opportunity to help someone.","The choice feels safe but a little empty."], health:-5 },
+      { text: "Offer a small repair with tape or string if you have it.", result:["Your quick fix holds and earns a grateful nod.","Improvised help saves the day in a small way."], health:20 },
+      { text: "Find a staff member to offer a replacement basket.", result:["Staff supplies a new basket and the problem is solved professionally.","The official fix restores order quickly."], health:10 }
+    ]
+  },
+
+  { title: "Scenario 28 - Sudden Rain Outside", lines:[
+      "A sudden cloudburst drenches the street outside and those leaving rush to cover loads and protect garments.",
+      "Staff tape open umbrellas and the entrance becomes a small haven of wet umbrellas and hurried steps.",
+      "You must decide whether to wait it out under the awning or dash home and risk soaking the laundry bag.",
+      "A soaked bag means extra weight and possible wet clothes inside a still-running cycle.",
+      "Calm planning saves your trip — a small umbrella or a patient wait may be the better choice.",
+      "Your decision balances comfort against completion: shelter now or speed later.",
+      "Pick a smart path to keep your garments dry and your walk manageable.",
+      "A small patience can turn a storm into a minor note in your day.",
+    ], choices:[
+      { text: "Wait under cover until the rain eases.", result:["You stay dry and leave with everything intact.","The small wait is comfortable and safe."], health:10 },
+      { text: "Dash home quickly and risk extra wetness.", result:["You get soaked but reach home faster.","The comfort tradeoff is immediate."], health:-10 },
+      { text: "Ask staff if they can hold your load until the weather clears.", result:["Staff offers a temporary solution and you feel relieved.","Their help eases the weather problem."], health:15 },
+      { text: "Buy a cheap rain cover and secure your bag.", result:["You protect your items and stay reasonably dry.","A small purchase saves a bigger problem."], health:10 },
+      { text: "Leave early and return later when it is clear.", result:["Leaving now costs another trip but avoids wetness.","You trade time for keeping things neat."], health:-5 }
+    ]
+  },
+
+  { title: "Scenario 29 - The Night Shift Regulars", lines:[
+      "As the day wanes, a group of night-shift regulars arrives with practiced efficiency and quiet jokes.",
+      "Their calm rhythm and small rituals hint at routines formed late at night, a different beat of the same place.",
+      "You notice how quickly they claim tasks and make space like clockwork.",
+      "You can ask for a tip to speed up your process or simply watch and learn.",
+      "Night regulars often have tricks that fit odd hours and slow machines left behind by earlier customers.",
+      "A short conversation with them may unlock smoother trips in the future.",
+      "Decide whether to join the quiet lessons of those who come late and leave early.",
+      "Small community knowledge can make every visit easier.",
+    ], choices:[
+      { text: "Chat and ask for one of their tips.", result:["A regular offers a simple trick that speeds your process.","You gain a small advantage for future trips."], health:10 },
+      { text: "Watch quietly and learn by example.", result:["You pick up the rhythm without interrupting them.","Learning by watching pays off slowly."], health:5 },
+      { text: "Keep to yourself and finish your tasks.", result:["You preserve your privacy and get your work done.","This route is calm but less social."], health:-5 },
+      { text: "Offer to help with a shared task and build rapport.", result:["Your help is welcomed and you earn goodwill.","Community bonds make visits friendlier."], health:15 },
+      { text: "Ask them about quiet spots and off-peak tricks.", result:["They give honest advice and you feel better prepared.","Insider tips make later trips faster."], health:10 }
+    ]
+  },
+
+  { title: "Scenario 30 - Final Check Before Leaving", lines:[
+      "You stand near the exit and perform a final check: pockets, zips, the receipt tucked into your phone case.",
+      "A last minute tug reveals a missing sock stuck in a corner; a small laugh from a stranger breaks the tension.",
+      "You can confirm everything now and leave with peace, or rush and risk another small return trip.",
+      "A calm final inspection often costs seconds but prevents a frustrating return visit.",
+      "Staff smile as you thank them; small courtesies pay back handsomely in good service.",
+      "Closing this trip with care feels like tying a neat bow around a busy afternoon.",
+      "Decide to linger for a moment of order or step out quickly — your day will feel very different either way.",
+      "Make the small careful choice that leaves you satisfied at home.",
+    ], choices:[
+      { text: "Do a thorough final check before leaving.", result:["You find the sock and everything is in order — peace at last.","A small extra moment saves future trouble."], health:20 },
+      { text: "Leave quickly to keep your schedule.", result:["You leave and realize later you missed a small item.","The small regret nags at you during the next hour."], health:-5 },
+      { text: "Thank staff and offer quick feedback about your visit.", result:["They appreciate the feedback and thank you.","Your note may improve future trips for others."], health:15 },
+      { text: "Double-check pockets only and go.", result:["A quick check finds most things but misses a small napkin.","It's enough for now but not perfect."], health:10 },
+      { text: "Ask a friend to confirm your items while you step away.", result:["A friend confirms everything and you leave relaxed.","Teamwork simplifies the last step."], health:10 }
+    ]
+  }
+];
+
+/* ============================
+   Game state & UI targets
+   ============================ */
+let currentIndex = -1;
+let player = { name: "", health: 100 };
+const screen = document.getElementById('screen');
+const inputBox = document.getElementById('inputBox');
+const healthUI = document.getElementById('healthUI');
+const restartBtn = document.getElementById('restartBtn');
+const hint = document.getElementById('hint');
+
+function clampHealth(){
+  if(player.health > 100) player.health = 100;
+  if(player.health < 0) player.health = 0;
+}
+function updateHealthUI(){
+  clampHealth();
+  healthUI.textContent = 'Health: ' + player.health;
+}
+
+/* Print helper that appends to screen and scrolls */
+function print(text){
+  screen.innerText += text + "\n\n";
+  screen.scrollTop = screen.scrollHeight;
+}
+/* Clear screen */
+function clearScreen(){
+  screen.innerText = "";
+}
+
+/* Backstory content (will print after entering name) */
+const backstoryLines = [
+  "Backstory:",
+  "Years ago, the laundry shop had a late-night incident when a customer went missing after entering the basement maintenance area.",
+  "The case was never solved, and staff avoid talking about the back hallways or the basement door.",
+  "Long-time customers say they sometimes hear odd sounds during power flickers or feel uneasy near restricted areas.",
+  "You arrive at Washee Washee with that quiet rumor in the air."
+];
+
+function startIntro() {
+  clearScreen();
+  print('Welcome to "Washee Washee Laundry"!');
+  print('');
+  print('Please enter your name:');
+  inputBox.dataset.mode = 'enterName';
+  inputBox.value = '';
+  inputBox.placeholder = 'Type your name here';
+  hint.innerText = 'Enter your name to begin.';
+}
+
+
+/* ================
+   Game flow
+   ================ */
+
+/* Start with welcome & name prompt */
+/* After name entered — echo the entered name, print backstory, then wait for Enter to start the game */
+function showBackstoryThenWait() {
+  // Replace the existing "Please enter your name:" line with one that includes the entered name
+  screen.innerText = screen.innerText.replace(
+    "Please enter your name:",
+    `Please enter your name: ${player.name}`
+  );
+
+  print('');
+  backstoryLines.forEach(ln => print(ln));
+  print('');
+  print('Press Enter to begin the game.');
+
+  inputBox.dataset.mode = 'startFromBackstory';
+  inputBox.value = '';
+  inputBox.placeholder = 'Press Enter to start';
+  hint.innerText = 'Press Enter to begin the scenarios.';
+}
+
+
+function beginGame(){
+  clearScreen();
+  print(`Hello ${player.name}! Let's begin.`);
+  print('');
+  print(`${player.name}'s current health: ${player.health}`);
+  print('--------------------------------------------------------------');
+  currentIndex = 0;
+  renderScenario(currentIndex);
+}
+
+function renderScenario(idx){
+  const s = scenarios[idx];
+  // print the title exactly as stored
+  print(s.title);
+  print('');
+  // scenario lines (longer, immersive)
+  s.lines.forEach(line => print(line));
+  print('');
+  // choices printed as numbered list
+  for(let i=0;i<s.choices.length;i++){
+    print(`${i+1}. ${s.choices[i].text}`);
+  }
+  print('');
+  print('Enter choice (1-5) and press Enter.');
+  inputBox.value = '';
+  inputBox.placeholder = 'Enter choice (1-5)';
+  inputBox.focus();
+  inputBox.dataset.mode = 'choose';
+  // removed any explicit "6+ => instant death" line from the hint per request
+  hint.innerText = 'Type number 1–5 for choices.';
+  updateHealthUI();
+}
+
+function showChoiceResult(choiceNumber){
+  const s = scenarios[currentIndex];
+  const idx = choiceNumber - 1;
+  if(!s || !s.choices[idx]){
+    print('Invalid choice. Try again.');
+    inputBox.value = '';
+    return;
+  }
+  const choiceObj = s.choices[idx];
+  print('Result:');
+  choiceObj.result.forEach(r => print(r));
+  // apply health change: NO HEALING — positive values ignored
+  const delta = (choiceObj.health > 0) ? 0 : choiceObj.health;
+  player.health += delta;
+  clampHealth();
+  updateHealthUI();
+  // after result, set mode to continue or dead
+  if(player.health === 0){
+    // immediate game over
+    setTimeout(() => showGameOver(), 500);
+    inputBox.dataset.mode = 'dead';
+    inputBox.value = '';
+    inputBox.placeholder = 'Game over — press Enter to restart';
+    hint.innerText = 'You died. Press Enter to restart or click Restart.';
+  } else {
+    inputBox.dataset.mode = 'continue';
+    inputBox.value = '';
+    inputBox.placeholder = 'Press Enter to continue';
+    hint.innerText = 'Press Enter to move to the next scenario.';
+  }
+}
+
+/* instant death if user inputs >= 6 (behavior preserved) */
+function instantDeath(){
+  player.health = 0;
+  updateHealthUI();
+  print('Sudden Accident');
+  print("Your hesitation triggers a sudden mishap. Everything goes dark.");
+  inputBox.dataset.mode = 'dead';
+  inputBox.value = '';
+  inputBox.placeholder = 'You died — press Enter to restart';
+  hint.innerText = 'You died. Press Enter to restart or click Restart.';
+  setTimeout(()=> showGameOver(), 600);
+}
+
+function showGameOver(){
+  print('--------------------------------------------------------------');
+  print('Game Over');
+  print(`${player.name ? player.name : 'Player'} final health: ${player.health}`);
+  print(endingText());
+  hint.innerText = 'Game over. Press Enter to restart or click Restart.';
+  inputBox.dataset.mode = 'dead';
+  inputBox.value = '';
+  inputBox.placeholder = 'Press Enter to restart';
+  inputBox.focus();
+}
+
+function endingText(){
+  if(player.health >= 85) return "Ending: You navigated the shop calmly and made mostly safe choices.";
+  if(player.health >= 60) return "Ending: You managed well but faced a few stressful moments.";
+  if(player.health >= 35) return "Ending: The experience was rough and you took several risks.";
+  return "Ending: You left shaken; the shop took a heavy toll on your peace of mind.";
+}
+
+function proceedNext(){
+  currentIndex++;
+  if(currentIndex >= scenarios.length){
+    // all done
+    print('--------------------------------------------------------------');
+    print('All scenarios complete');
+    print(`${player.name ? player.name : 'Player'} final health: ${player.health}`);
+    print(endingText());
+    inputBox.dataset.mode = 'finished';
+    inputBox.placeholder = 'Press Enter to restart';
+    hint.innerText = 'Done. Press Enter to restart or click Restart.';
+    inputBox.value = '';
+    inputBox.focus();
+    return;
+  }
+  // render scenario
+  renderScenario(currentIndex);
+}
+
+/* Restart routine */
+function restartGame(){
+  if(!confirm('Restart the game? Progress will be lost.')) return;
+  player = { name: "", health: 100 };
+  currentIndex = -1;
+  updateHealthUI();
+  startIntro();
+}
+
+/* Input handling */
+inputBox.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const mode = inputBox.dataset.mode || 'enterName';
+  const raw = inputBox.value.trim();
+  if(mode === 'enterName'){
+    player.name = raw || 'Player';
+    player.health = 100;
+    updateHealthUI();
+    // show backstory after entering name (echoes the name as requested)
+    showBackstoryThenWait();
+    return;
+  }
+  if(mode === 'startFromBackstory'){
+    // start the game after showing backstory
+    beginGame();
+    return;
+  }
+  if(mode === 'choose'){
+    if(raw === '') { print('Please enter a number.'); inputBox.value = ''; return; }
+    const num = parseInt(raw,10);
+    if(!Number.isInteger(num)){
+      print('Enter a valid number.');
+      inputBox.value = '';
+      return;
+    }
+    if(num >= 6){
+      // typing 6+ still triggers instant death (behavior preserved)
+      instantDeath();
+      return;
+    }
+    if(num < 1){
+      print('Enter a valid number between 1 and 5.');
+      inputBox.value = '';
+      return;
+    }
+    // valid choice
+    showChoiceResult(num);
+    return;
+  }
+  if(mode === 'continue'){
+    // move to next scenario
+    proceedNext();
+    return;
+  }
+  if(mode === 'dead' || mode === 'finished'){
+    // restart
+    player = { name: "", health: 100 };
+    currentIndex = -1;
+    updateHealthUI();
+    startIntro();
+    return;
+  }
+});
+
+/* Restart button */
+restartBtn.addEventListener('click', restartGame);
+
+/* Initialize UI */
+updateHealthUI();
+startIntro();
+
+/* Ensure screen focused so typing works immediately */
+window.addEventListener('load', ()=> inputBox.focus());
+</script>
+</body>
+</html>
